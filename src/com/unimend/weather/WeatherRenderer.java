@@ -118,31 +118,32 @@ final class WeatherRenderer {
         canvas.drawCircle(x,y,radius,paint);
     }
     private void drawSun(boolean day,int frame) {
-        int yellow=Color.rgb(248,196,55);
+        int yellow=Color.rgb(255,224,32);
         if(!day) {
             int moon=Color.rgb(196,218,235);
             for(int y=-5;y<=5;y++) for(int x=-5;x<=5;x++)
                 if(x*x+y*y<=25 && (x-2)*(x-2)+(y+1)*(y+1)>14) dot(256+x*8,266+y*8,3.4f,moon,235);
             return;
         }
-        for(int y=-3;y<=3;y++) for(int x=-3;x<=3;x++) if(x*x+y*y<=10) dot(256+x*9,266+y*9,3.5f,yellow,245);
+        for(int y=-3;y<=3;y++) for(int x=-3;x<=3;x++) if(x*x+y*y<=10) dot(256+x*9,266+y*9,3.7f,yellow,255);
         double phase=Math.toRadians(frame*12);
         for(int arm=0;arm<8;arm++) {
             double a=phase+arm*Math.PI/4;
             for(int step=0;step<3;step++) {
                 float r=47+step*10;
-                dot(256+(float)Math.cos(a)*r,266+(float)Math.sin(a)*r,3.1f,yellow,215-step*28);
+                dot(256+(float)Math.cos(a)*r,266+(float)Math.sin(a)*r,3.3f,yellow,250-step*18);
             }
         }
     }
     private void drawMist(int frame) {
         int mist=Color.rgb(190,205,210);
-        int[] lengths={9,12,10,8};
-        for(int row=0;row<4;row++) {
-            float shift=(row%2==0?1:-1)*(frame%6)*3.2f;
-            float start=256-(lengths[row]-1)*8+shift;
-            for(int i=0;i<lengths[row];i++) dot(start+i*16,230+row*24,3.3f,mist,225-row*20);
+        paint.setColor(mist); paint.setStrokeWidth(8); paint.setStrokeCap(Paint.Cap.ROUND);
+        for(int bar=0;bar<4;bar++) {
+            float shift=((frame+bar)%6-2.5f)*2.8f;
+            float x=196+bar*38+shift;
+            canvas.drawLine(x,224,x+42,306,paint);
         }
+        paint.setStrokeCap(Paint.Cap.BUTT);
     }
     private void drawCloud(boolean sunBehind,int frame) {
         if(sunBehind) {
@@ -156,7 +157,7 @@ final class WeatherRenderer {
         for(int y=0;y<7;y++) for(int x=0;x<15;x++) {
             double dx=x-7,dy=y-3;
             boolean on=(dx*dx/36+dy*dy/8<=1)||(Math.pow(x-5,2)/12+Math.pow(y-2,2)/7<=1)||(Math.pow(x-9,2)/10+Math.pow(y-2.5,2)/6<=1);
-            if(on) dot(256+(x-7)*10,232+y*10,3.3f,cloud,235-y*21);
+            if(on) dot(256+(x-7)*8,214+y*7,3.0f,cloud,105+y*23);
         }
     }
     private void drawRain(int frame) {
@@ -164,11 +165,11 @@ final class WeatherRenderer {
         int blue=Color.rgb(65,155,225);
         for(int lane=0;lane<4;lane++) for(int p=0;p<3;p++) {
             float travel=(frame*7+p*17)%42;
-            dot(211+lane*30+travel*.20f,302+travel,3.2f,blue,225-p*25);
+            dot(221+lane*24+travel*.16f,270+travel,3.0f,blue,225-p*25);
         }
     }
     private void drawSnow(int frame) {
-        int sky=Color.rgb(105,190,235); double phase=Math.toRadians(frame*12);
+        int sky=Color.WHITE; double phase=Math.toRadians(frame*12);
         dot(256,266,4,sky,250);
         for(int arm=0;arm<6;arm++) {
             double a=phase+arm*Math.PI/3;
@@ -183,13 +184,14 @@ final class WeatherRenderer {
         }
     }
     private void drawStorm(int frame) {
-        drawCloudGradient(); int blue=Color.rgb(65,145,220),yellow=Color.rgb(255,205,45);
-        for(int lane=0;lane<5;lane++) for(int p=0;p<3;p++) {
-            float travel=(frame*9+p*18)%48;
-            dot(190+lane*31+travel*.32f,302+travel,3,blue,210-p*24);
+        int blue=Color.rgb(65,155,225),yellow=Color.rgb(255,224,32);
+        int[] lanes={-72,-42,42,72};
+        for(int lane:lanes) for(int p=0;p<5;p++) {
+            float travel=(frame*8+p*18)%78;
+            dot(256+lane-travel*.34f,224+travel,3.1f,blue,235-p*18);
         }
         int alpha=(frame%4==0||frame%4==1)?255:75;
-        int[][] bolt={{0,0},{-1,1},{0,1},{-1,2},{-2,3},{-1,3},{-2,4}};
-        for(int[] p:bolt) dot(265+p[0]*11,298+p[1]*11,4.1f,yellow,alpha);
+        int[][] bolt={{1,-3},{0,-2},{1,-2},{0,-1},{-1,0},{0,0},{-1,1},{-2,2}};
+        for(int[] p:bolt) dot(256+p[0]*11,266+p[1]*11,4.3f,yellow,alpha);
     }
 }
