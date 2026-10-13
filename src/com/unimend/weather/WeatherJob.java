@@ -35,7 +35,7 @@ public class WeatherJob extends JobService {
                 boolean cancelled=Thread.currentThread().isInterrupted();
                 store.prefs.edit().putBoolean("loading",false).apply();
                 if(!cancelled) {
-                    WeatherWidget.publish(this);
+                    WeatherWidget.publishAnimated(this);
                     sendBroadcast(new android.content.Intent("com.unimend.weather.UPDATED").setPackage(getPackageName()));
                     jobFinished(p,retry);
                 }

@@ -19,7 +19,15 @@ final class WeatherStore {
     JSONObject data() {
         try { return new JSONObject(prefs.getString("data", "{}")); } catch (Exception e) { return new JSONObject(); }
     }
-    void save(JSONObject data) { prefs.edit().putString("data", data.toString()).remove("error").apply(); }
+    void save(JSONObject data) {
+        JSONObject old=data();
+        try {
+            if(old.has("temp") && old.optLong("observed")!=data.optLong("observed"))
+                data.put("tempDelta",data.optDouble("temp")-old.optDouble("temp"));
+            else if(old.has("tempDelta")) data.put("tempDelta",old.optDouble("tempDelta"));
+        } catch(Exception ignored) { }
+        prefs.edit().putString("data", data.toString()).remove("error").apply();
+    }
     void error(String error) { prefs.edit().putString("error", error).apply(); }
     int page(int id) { return prefs.getInt("page_"+id, 0); }
     void toggle(int id) { prefs.edit().putInt("page_"+id, 1-page(id)).apply(); }
