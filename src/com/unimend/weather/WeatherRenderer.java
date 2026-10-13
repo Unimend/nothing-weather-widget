@@ -57,11 +57,11 @@ final class WeatherRenderer {
             int trend=delta>0.15?Color.rgb(226,70,65):delta<-0.15?Color.rgb(72,155,210):Color.WHITE;
             int temperature=frame<0?Color.WHITE:mix(Color.rgb(205,205,205),trend,0.22f+0.34f*pulse);
             text(degree(d.optDouble("temp")),256,130,134,temperature,true);
-            canvas.save(); canvas.scale(1.22f,1.22f,256,262);
+            canvas.save(); canvas.translate(0,18); canvas.scale(1.18f,1.18f,256,262);
             icon(d.optInt("code"),d.optInt("day",1)==1,feedback?RED:Color.WHITE,frame);
             if(frame>=0) wind(d.optDouble("direction"),d.optDouble("wind"),frame);
             canvas.restore();
-            text(shortCity(s.city())+" · "+WeatherSource.condition(d.optInt("code")),256,408,46,Color.WHITE,false);
+            text(shortCity(s.city())+" · "+WeatherSource.condition(d.optInt("code")),256,412,46,Color.WHITE,false);
         } else {
             text("↑ "+degree(d.optDouble("high")),256,105,82,Color.WHITE,true);
             text("↓ "+degree(d.optDouble("low")),256,195,82,Color.WHITE,true);
