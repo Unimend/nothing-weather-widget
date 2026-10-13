@@ -11,6 +11,7 @@
 - API 天气是模型结果，空气为 CAMS 模型估算；US AQI 并非中国 AQI。数据时间与手机时钟分别处理。
 - 切页和数据刷新后播放约1.5秒的信息动画：天气粒子、真实风向流动、温度趋势呼吸及AQI边缘灯；随后恢复静态，不常驻高频刷新。
 - 天气色彩：晴日高亮黄、雾灰蓝、雨蓝、雪白、雷电黄；夜间晴天显示冷白月牙。
+- Doto 不含中文字符；首页中文状态行使用与 FM 组件一致的 Zpix 最像素字体，Doto 继续负责英文、数字和温度。
 
 ## 构建与安装
 
@@ -27,7 +28,7 @@ adb install -r build/weather-widget.apk
 
 权限：INTERNET 获取天气和城市；ACCESS_NETWORK_STATE 调度联网任务；RECEIVE_BOOT_COMPLETED 恢复调度。JobService 仅系统凭 BIND_JOB_SERVICE 权限可调用。
 
-数据归属：Open-Meteo https://open-meteo.com/ 、CAMS https://atmosphere.copernicus.eu/ （CC BY 4.0，详见官方条款）。字体 Doto / SIL OFL，许可证随包附带。
+数据归属：Open-Meteo https://open-meteo.com/ 、CAMS https://atmosphere.copernicus.eu/ （CC BY 4.0，详见官方条款）。英数采用 Doto（SIL OFL，许可证随包附带）；中文采用开源字体 [Zpix 最像素](https://github.com/SolidZORO/zpix-pixel-font)。
 设计参考：https://github.com/jaxparrow07/nothing-kde-widgets ，未复制其字体或图标资源。
 
 默认发布APK为自用debug签名。卸载：adb uninstall com.unimend.weather（会清除配置缓存）。

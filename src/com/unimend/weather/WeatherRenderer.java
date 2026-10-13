@@ -12,10 +12,12 @@ final class WeatherRenderer {
     private final Canvas canvas;
     private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Typeface doto;
+    private final Typeface zpix;
     private static final int GREY=Color.rgb(150,150,150), RED=Color.rgb(235,48,54);
     private WeatherRenderer(Context c,Bitmap b) {
         canvas=new Canvas(b); canvas.scale(b.getWidth()/512f,b.getHeight()/512f);
         doto=Typeface.createFromAsset(c.getAssets(),"doto.ttf");
+        zpix=Typeface.createFromAsset(c.getAssets(),"zpix.ttf");
     }
     static Bitmap render(Context c,WeatherStore store,int page,int pixels,boolean feedback) {
         return render(c,store,page,pixels,feedback,-1);
@@ -29,6 +31,14 @@ final class WeatherRenderer {
         paint.setTextSize(size); paint.setColor(color); paint.setStyle(Paint.Style.FILL);
         Rect bounds=new Rect(); paint.getTextBounds(value,0,value.length(),bounds);
         canvas.drawText(value,x-(bounds.left+bounds.right)/2f,y-(bounds.top+bounds.bottom)/2f,paint);
+    }
+    private void pixelText(String value,float x,float y,float size,int color) {
+        paint.setTypeface(zpix);
+        paint.setTextSize(size); paint.setColor(color); paint.setStyle(Paint.Style.FILL);
+        paint.setAntiAlias(false);
+        Rect bounds=new Rect(); paint.getTextBounds(value,0,value.length(),bounds);
+        canvas.drawText(value,x-(bounds.left+bounds.right)/2f,y-(bounds.top+bounds.bottom)/2f,paint);
+        paint.setAntiAlias(true);
     }
     private String shortCity(String name) { return name.length()>8?name.substring(0,7)+"…":name; }
     private static String degree(double n) { return String.format(Locale.US,"%.0f°",n); }
@@ -61,7 +71,7 @@ final class WeatherRenderer {
             icon(d.optInt("code"),d.optInt("day",1)==1,feedback?RED:Color.WHITE,frame);
             if(frame>=0) wind(d.optDouble("direction"),d.optDouble("wind"),frame);
             canvas.restore();
-            text(shortCity(s.city())+" · "+WeatherSource.condition(d.optInt("code")),256,412,46,Color.WHITE,false);
+            pixelText(shortCity(s.city())+" · "+WeatherSource.condition(d.optInt("code")),256,412,46,Color.WHITE);
         } else {
             text("↑ "+degree(d.optDouble("high")),256,105,82,Color.WHITE,true);
             text("↓ "+degree(d.optDouble("low")),256,195,82,Color.WHITE,true);
