@@ -102,36 +102,94 @@ final class WeatherRenderer {
     private void icon(int code,boolean day,int color) { icon(code,day,color,-1); }
     private void icon(int code,boolean day,int color,int frame) {
         boolean snow=(code>=71&&code<=77)||code==85||code==86;
-        boolean rain=(code>=51&&code<=67)||(code>=80&&code<=82)||code>=95;
-        boolean fog=code==45||code==48;
-        boolean clear=code==0||code==1;
-        paint.setColor(color); paint.setStyle(Paint.Style.FILL);
-        for(int y=0;y<13;y++) for(int x=0;x<17;x++) {
-            boolean on=false;
-            if(clear) {
-                double dx=x-8,dy=y-6,r=Math.sqrt(dx*dx+dy*dy);
-                if(day) on=r<=3.2 || (r>=4.8&&r<=6.2&&(x==8||y==6||Math.abs(dx)==Math.abs(dy)));
-                else on=r<=5 && Math.pow(x-10,2)+Math.pow(y-4,2)>22;
-            } else if(fog) on=(y==3||y==6||y==9)&&x>=3&&x<=13;
-            else {
-                on=(Math.pow((x-6)/3.5,2)+Math.pow((y-4)/3.0,2)<=1)
-                    ||(Math.pow((x-10)/3.5,2)+Math.pow((y-5)/2.5,2)<=1)
-                    ||(y>=5&&y<=7&&x>=3&&x<=13);
-                if(rain) on|=(x==5||x==9||x==13)&&(y==9||y==11);
-                if(snow) on|=(y==10&&(x==5||x==9||x==13))||(y==12&&(x==7||x==11));
-                if(code>=95) on|=(y==8&&x==9)||(y==9&&x==8)||(y==10&&x>=7&&x<=9)||(y==11&&x==8)||(y==12&&x==7);
-            }
-            if(on) {
-                float ox=0,oy=0;
-                if(frame>=0 && fog) ox=(frame%6-2.5f)*1.4f*(y==6?-1:1);
-                if(frame>=0 && rain && y>=9) oy=(frame%3)*2.5f;
-                if(frame>=0 && snow && y>=10) { ox=((x+frame)%3-1)*2; oy=(frame%4)*1.5f; }
-                int animated=color;
-                if(frame>=0 && clear && ((x+y+frame)%4==0)) animated=mix(color,Color.rgb(115,115,115),.42f);
-                if(frame>=0 && code>=95 && frame%4==1 && y>=8) animated=Color.WHITE;
-                paint.setColor(animated);
-                canvas.drawCircle(256+(x-8)*10+ox,266+(y-6)*10+oy,3.4f,paint);
+        boolean rain=(code>=51&&code<=67)||(code>=80&&code<=82);
+        boolean thunder=code>=95, fog=code==45||code==48, clear=code==0||code==1;
+        int f=frame<0?0:frame;
+        if(clear) drawSun(day,f);
+        else if(fog) drawMist(f);
+        else if(snow) drawSnow(f);
+        else if(thunder) drawStorm(f);
+        else if(rain) drawRain(f);
+        else drawCloud(code==2,f);
+    }
+    private void dot(float x,float y,float radius,int color,int alpha) {
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.argb(alpha,Color.red(color),Color.green(color),Color.blue(color)));
+        canvas.drawCircle(x,y,radius,paint);
+    }
+    private void drawSun(boolean day,int frame) {
+        int yellow=Color.rgb(248,196,55);
+        if(!day) {
+            int moon=Color.rgb(196,218,235);
+            for(int y=-5;y<=5;y++) for(int x=-5;x<=5;x++)
+                if(x*x+y*y<=25 && (x-2)*(x-2)+(y+1)*(y+1)>14) dot(256+x*8,266+y*8,3.4f,moon,235);
+            return;
+        }
+        for(int y=-3;y<=3;y++) for(int x=-3;x<=3;x++) if(x*x+y*y<=10) dot(256+x*9,266+y*9,3.5f,yellow,245);
+        double phase=Math.toRadians(frame*12);
+        for(int arm=0;arm<8;arm++) {
+            double a=phase+arm*Math.PI/4;
+            for(int step=0;step<3;step++) {
+                float r=47+step*10;
+                dot(256+(float)Math.cos(a)*r,266+(float)Math.sin(a)*r,3.1f,yellow,215-step*28);
             }
         }
+    }
+    private void drawMist(int frame) {
+        int mist=Color.rgb(190,205,210);
+        int[] lengths={9,12,10,8};
+        for(int row=0;row<4;row++) {
+            float shift=(row%2==0?1:-1)*(frame%6)*3.2f;
+            float start=256-(lengths[row]-1)*8+shift;
+            for(int i=0;i<lengths[row];i++) dot(start+i*16,230+row*24,3.3f,mist,225-row*20);
+        }
+    }
+    private void drawCloud(boolean sunBehind,int frame) {
+        if(sunBehind) {
+            int yellow=Color.rgb(248,196,55);
+            for(int i=0;i<8;i++) { double a=i*Math.PI/4+frame*.12; dot(220+(float)Math.cos(a)*30,238+(float)Math.sin(a)*30,3,yellow,175); }
+        }
+        drawCloudGradient();
+    }
+    private void drawCloudGradient() {
+        int cloud=Color.rgb(220,225,228);
+        for(int y=0;y<7;y++) for(int x=0;x<15;x++) {
+            double dx=x-7,dy=y-3;
+            boolean on=(dx*dx/36+dy*dy/8<=1)||(Math.pow(x-5,2)/12+Math.pow(y-2,2)/7<=1)||(Math.pow(x-9,2)/10+Math.pow(y-2.5,2)/6<=1);
+            if(on) dot(256+(x-7)*10,232+y*10,3.3f,cloud,235-y*21);
+        }
+    }
+    private void drawRain(int frame) {
+        drawCloudGradient();
+        int blue=Color.rgb(65,155,225);
+        for(int lane=0;lane<4;lane++) for(int p=0;p<3;p++) {
+            float travel=(frame*7+p*17)%42;
+            dot(211+lane*30+travel*.20f,302+travel,3.2f,blue,225-p*25);
+        }
+    }
+    private void drawSnow(int frame) {
+        int sky=Color.rgb(105,190,235); double phase=Math.toRadians(frame*12);
+        dot(256,266,4,sky,250);
+        for(int arm=0;arm<6;arm++) {
+            double a=phase+arm*Math.PI/3;
+            for(int step=1;step<=4;step++) {
+                float r=step*14; float x=256+(float)Math.cos(a)*r,y=266+(float)Math.sin(a)*r;
+                dot(x,y,3.2f,sky,245-step*22);
+                if(step==3) {
+                    dot(x+(float)Math.cos(a+.7)*11,y+(float)Math.sin(a+.7)*11,2.8f,sky,190);
+                    dot(x+(float)Math.cos(a-.7)*11,y+(float)Math.sin(a-.7)*11,2.8f,sky,190);
+                }
+            }
+        }
+    }
+    private void drawStorm(int frame) {
+        drawCloudGradient(); int blue=Color.rgb(65,145,220),yellow=Color.rgb(255,205,45);
+        for(int lane=0;lane<5;lane++) for(int p=0;p<3;p++) {
+            float travel=(frame*9+p*18)%48;
+            dot(190+lane*31+travel*.32f,302+travel,3,blue,210-p*24);
+        }
+        int alpha=(frame%4==0||frame%4==1)?255:75;
+        int[][] bolt={{0,0},{-1,1},{0,1},{-1,2},{-2,3},{-1,3},{-2,4}};
+        for(int[] p:bolt) dot(265+p[0]*11,298+p[1]*11,4.1f,yellow,alpha);
     }
 }
