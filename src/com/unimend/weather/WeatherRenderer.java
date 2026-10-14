@@ -56,7 +56,7 @@ final class WeatherRenderer {
             text("点击选择城市",256,400,32,GREY,false); return;
         }
         boolean stale=valid && s.stale(d);
-        String status=s.prefs.getBoolean("loading",false)?"UPDATING":!valid?(s.prefs.contains("error")?"RETRY":"WAITING"):stale?"STALE":"";
+        String status=s.loading()?"UPDATING":!valid?(s.hasError()?"RETRY":"WAITING"):stale?"STALE":"";
         if(!valid) {
             text("--°",244,142,110,Color.WHITE,true); icon(2,true,Color.rgb(70,70,70));
             text(shortCity(s.city()),244,384,32,Color.WHITE,false);

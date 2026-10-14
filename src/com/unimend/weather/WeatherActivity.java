@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
+import android.appwidget.AppWidgetManager;
 import android.widget.*;
 import android.view.View;
 import java.util.concurrent.*;
@@ -21,15 +22,16 @@ public class WeatherActivity extends Activity {
     private final Handler handler=new Handler(Looper.getMainLooper());
     private TextView details; private ImageView preview; private EditText city; private Button search;
     private WeatherStore store;
+    private int widgetId;
     private final BroadcastReceiver updates=new BroadcastReceiver() {
         @Override public void onReceive(Context c,Intent i) { show(); }
     };
     @Override public void onCreate(Bundle state) {
-        super.onCreate(state); store=new WeatherStore(this);
+        super.onCreate(state); widgetId=getIntent().getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,0); store=new WeatherStore(this,widgetId);
         getWindow().setStatusBarColor(Color.BLACK); getWindow().setNavigationBarColor(Color.BLACK);
         LinearLayout body=new LinearLayout(this); body.setOrientation(LinearLayout.VERTICAL); body.setPadding(dp(24),dp(20),dp(24),dp(28)); body.setBackgroundColor(Color.BLACK);
         ScrollView scroll=new ScrollView(this); scroll.addView(body); setContentView(scroll);
-        TextView title=new TextView(this); title.setText("点阵天气"); title.setTextSize(28); title.setTextColor(Color.WHITE); body.addView(title);
+        TextView title=new TextView(this); title.setText(widgetId>0?"点阵天气 · 当前组件":"点阵天气 · 新组件默认值"); title.setTextSize(28); title.setTextColor(Color.WHITE); body.addView(title);
         preview=new ImageView(this); preview.setScaleType(ImageView.ScaleType.FIT_CENTER); body.addView(preview,new LinearLayout.LayoutParams(-1,dp(240)));
         preview.setOnClickListener(v->{store.toggle(0);show();}); preview.setContentDescription("点击切换天气预览页");
         details=new TextView(this); details.setTextSize(16); details.setTextColor(Color.LTGRAY); details.setLineSpacing(dp(5),1); body.addView(details);
@@ -43,9 +45,10 @@ public class WeatherActivity extends Activity {
     }
     private int dp(float n) { return Math.round(n*getResources().getDisplayMetrics().density); }
     private void choose(String name,double lat,double lon) {
-        store.city(name,lat,lon); store.prefs.edit().putBoolean("loading",false).apply();
-        WeatherWidget.publish(this); WeatherWidget.schedule(this,true); show();
-        Toast.makeText(this,"已选择"+name,Toast.LENGTH_SHORT).show();
+        store.city(name,lat,lon); store.loading(false);
+        if(widgetId>0) WeatherWidget.draw(this,widgetId,false); else WeatherWidget.publish(this);
+        WeatherWidget.schedule(this,true); show();
+        Toast.makeText(this,"已为当前组件选择"+name,Toast.LENGTH_SHORT).show();
     }
     private void search() {
         String name=city.getText().toString().trim(); if(name.length()<2) { city.setError("请输入至少两个字符"); return; }
@@ -70,7 +73,7 @@ public class WeatherActivity extends Activity {
         preview.setImageBitmap(WeatherRenderer.render(this,store,store.page(0),Math.min(1000,dp(240)),false));
         JSONObject d=store.data();
         if(!store.configured()) { details.setText("先选择城市，再将“点阵天气”放到桌面。\n建议1×1，与指南针并排放置。右侧点击切页，主体点击打开详情。"); return; }
-        if(!d.has("temp")) { details.setText(store.city()+"\n"+(store.prefs.contains("error")?"请求失败，请联网后刷新":"等待天气数据…")); return; }
+        if(!d.has("temp")) { details.setText(store.city()+"\n"+(store.hasError()?"请求失败，请联网后刷新":"等待天气数据…")); return; }
         SimpleDateFormat time=new SimpleDateFormat("MM-dd HH:mm",Locale.US); time.setTimeZone(TimeZone.getTimeZone(d.optString("timezone","Asia/Shanghai")));
         String air=d.has("aqi")?String.format(Locale.US,"US AQI %.0f · PM2.5 %.1f μg/m³\n空气数据时间 %s",d.optDouble("aqi"),d.optDouble("pm"),time.format(new Date(d.optLong("airTime")))):"空气数据暂不可用";
         details.setText(String.format(Locale.US,"%s · %s\n温度 %.1f°C · 体感 %.1f°C\n最高 %.0f°C · 最低 %.0f°C\n风速 %.1f m/s · 风向 %.0f°（来向）\n%s\n未来3h降雨概率 %s\n天气数据时间 %s\n成功获取时间 %s%s",store.city(),WeatherSource.condition(d.optInt("code")),d.optDouble("temp"),d.optDouble("feel"),d.optDouble("high"),d.optDouble("low"),d.optDouble("wind"),d.optDouble("direction"),air,d.optInt("rain",-1)<0?"--":d.optInt("rain")+"%",time.format(new Date(d.optLong("observed"))),time.format(new Date(d.optLong("fetched"))),store.stale(d)?"\n缓存已过期或刷新失败":""));
